@@ -5,15 +5,16 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-import matplotlib.patches as patches
+
 
 # importing internal classes and methods
-from helper_methods import visualize_img, color_grad_thresh
+from helper_methods import sobel_color_threshold, draw_result
 from calibration import Calibration
 from perspective_transform import PerspectiveTransform
 from thresholding import Thresholding
 from lanefinder import LaneFinder
-
+from curvature import Curvature
+from line import Line
 
 # cv2.imshow("Test image", img)
 # cv2.waitKey()
@@ -35,18 +36,24 @@ def main():
     #  Apply a distortion correction to raw images.
     calibrator = Calibration()
     transformer = PerspectiveTransform()
+    curvature = Curvature()
     # print("Cam matrix:\n", calibrator.mtx)
     # open a video file / test image with straight line
     rgb_img = mpimg.imread('test_images/straight_lines1.jpg')
-
-    thres_img = color_grad_thresh(rgb_img)
+    undist_img = calibrator.undistort_img(rgb_img)
+    thres_img = sobel_color_threshold(undist_img)
 
     warped_img = transformer.warp(thres_img)
     transformer.visualize_transform(thres_img)
 
+    lline = Line()
+    rline = Line()
     lanefinder = LaneFinder()
-    lanefinder.calc_histogram(warped_img)
+    leftx, rightx = lanefinder.calc_histogram(warped_img)
 
+    left_curverad, right_curverad = curvature.calc_radcurvature(leftx, rightx)
+    print("Radius curvature: %f, %f" % (left_curverad, right_curverad))
+    draw_result(undist_img, warped_img, transformer.Minv, curvature.ploty, curvature.left_fitx, curvature.right_fitx)
 #  Use color transforms, gradients, etc., to create a thresholded binary image.
 
 

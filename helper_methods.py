@@ -5,7 +5,6 @@ Description: Helper function for P3
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
-from matplotlib.patches import Rectangle
 # Analyzing the training datasets
 
 
@@ -29,21 +28,6 @@ def get_relative_path(abs_path):
     """
     filename = abs_path.split("/")[-1]
     return "../p3_training_data/IMG/" + filename
-
-
-def plot_history(history):
-    """
-    Plot function for model history object which contains the loss values
-    """
-    plt.figure()
-    plt.plot(np.arange(1, len(history['loss']) + 1), np.array(history['loss']))
-    plt.plot(np.arange(1, len(history['val_loss']) + 1), np.array(history['val_loss']))
-    plt.title("Model History")
-    plt.ylabel("MSE loss")
-    plt.legend(['training', 'validation'], loc='upper right')
-    plt.xlabel("Epoch")
-    plt.grid(True, linestyle='--')
-    plt.show()
 
 
 def visualize_img(img1, img2, title1="Image 1", title2="Image 2", cmap=""):
@@ -88,7 +72,7 @@ def visualize_img(imglist, titlelist, cmaplist):
     plt.show()
 
 
-def color_grad_thresh(img, orient='x', thresh_min=15, thresh_max=100):
+def sobel_color_threshold(img, orient='x', thresh_min=15, thresh_max=100):
     # Convert to grayscale
     gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
     # Apply x or y gradient with the OpenCV Sobel() function
@@ -98,9 +82,11 @@ def color_grad_thresh(img, orient='x', thresh_min=15, thresh_max=100):
     s_channel = hls[:, :, 2]
     kernelsize = 3
     if orient == 'x':
-        sobel_gray = np.absolute(cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=kernelsize))
+        sobel_gray = np.absolute(
+            cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=kernelsize))
     if orient == 'y':
-        sobel_gray = np.absolute(cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=kernelsize))
+        sobel_gray = np.absolute(
+            cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=kernelsize))
     abs_sobel_gray = np.absolute(sobel_gray)
     # Rescale back to 8 bit integer
     scaled_sobel = np.uint8(255 * abs_sobel_gray / np.max(abs_sobel_gray))
@@ -111,20 +97,45 @@ def color_grad_thresh(img, orient='x', thresh_min=15, thresh_max=100):
 
     # Create a copy and apply the binary threshold
     binary_sobel = np.zeros_like(scaled_sobel)
-    binary_sobel[(scaled_sobel >= thresh_min) & (scaled_sobel <= thresh_max)] = 1
+    binary_sobel[(scaled_sobel >= thresh_min) &
+                 (scaled_sobel <= thresh_max)] = 1
 
     s_thresh = (170, 255)
     binary_s = np.zeros_like(s_channel)
     binary_s[(s_channel > s_thresh[0]) & (s_channel <= s_thresh[1])] = 1
 
-
     # Stack each channel
     # Note color_binary[:, :, 0] is all 0s, effectively an all black image. It might
     # be beneficial to replace this channel with something else.
-    combine_binary = np.dstack((np.zeros_like(binary_s), binary_s, binary_sobel))
+    combine_binary = np.dstack(
+        (np.zeros_like(binary_s), binary_s, binary_sobel))
 
     visualize_img((img, hls, scaled_sobel, binary_sobel, binary_s, combine_binary),
-                  ("RGB", "hls", "scaled_sobel", "binary_sobel", "binary_s", "combine_binary"),
+                  ("RGB", "hls", "scaled_sobel", "binary_sobel",
+                   "binary_s", "combine_binary"),
                   (0, 0, 0, 1, 1, 1))
     return combine_binary
 
+
+def draw_result(undist_img, warped_img, Minv, ploty, left_fitx, right_fitx):
+    # Create an image to draw the lines on
+    color_warp = np.zeros_like(warped_img).astype(np.uint8)
+    # color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
+
+    # Recast the x and y points into usable format for cv2.fillPoly()
+    pts_left = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
+    pts_right = np.array(
+        [np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
+    pts = np.hstack((pts_left, pts_right))
+    #pts = np.array(pts, dtype=np.int32)
+    # Draw the lane onto the warped blank image
+    cv2.fillPoly(color_warp, np.int_([pts]), (0, 255, 0))
+
+    # Warp the blank back to original image space using inverse perspective
+    # matrix (Minv)
+    unwarp = cv2.warpPerspective(
+        color_warp, Minv, (undist_img.shape[1], undist_img.shape[0]))
+    # Combine the result with the original image
+    result = cv2.addWeighted(undist_img, 1, unwarp, 0.3, 0)
+    plt.imshow(result)
+    plt.show()
