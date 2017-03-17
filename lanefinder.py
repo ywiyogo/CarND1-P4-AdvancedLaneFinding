@@ -15,6 +15,8 @@ class LaneFinder:
         """Constructor"""
         self.left_fitx = 0
         self.right_fitx = 0
+        self.leftx_base = 0
+        self.rightx_base = 0
 
     def calc_histogram(self, binwarped_img):
         """Calculate histogram of a binary warped image"""
@@ -23,7 +25,7 @@ class LaneFinder:
         # binary warped image has 3 channels
         histogram = np.sum(binwarped_img[half_y:, :, 1:], axis=0)
         plt.plot(histogram)
-        #add the distribution of both channels
+        # add the distribution of both channels
         histogram = histogram[:, 0] + histogram[:, 1]
         plt.plot(histogram)
         plt.show()
@@ -72,7 +74,8 @@ class LaneFinder:
             # cv2.rectangle(out_img,(win_xright_low,win_y_low),(win_xright_high,win_y_high),(0,255,0), 2)
             if DEBUG:
                 print("Out img: ", out_img.shape)
-                print("Window xleftlow %d %d %d %d" % (win_xleft_low, win_y_low, win_xleft_high, win_y_high ))
+                print("Window xleftlow %d %d %d %d" % (win_xleft_low, win_y_low,
+                      win_xleft_high, win_y_high))
                 fig = plt.figure()
                 ax = fig.add_subplot(111)
                 ax.add_patch(Rectangle((win_xleft_low, win_y_high), 2 * margin, window_height, fill=False, alpha=1, color="red"))
@@ -80,10 +83,15 @@ class LaneFinder:
                 ax.imshow(binwarped_img)
                 plt.show()
             # Identify the nonzero pixels in x and y within the window
-            good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xleft_low) & (nonzerox < win_xleft_high)).nonzero()[0]
-            good_right_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xright_low) & (nonzerox < win_xright_high)).nonzero()[0]
+            good_left_inds = ((nonzeroy >= win_y_low) &
+                              (nonzeroy < win_y_high) &
+                              (nonzerox >= win_xleft_low) &
+                              (nonzerox < win_xleft_high)).nonzero()[0]
+            good_right_inds = ((nonzeroy >= win_y_low) &
+                               (nonzeroy < win_y_high) &
+                               (nonzerox >= win_xright_low) &
+                               (nonzerox < win_xright_high)).nonzero()[0]
             # Append these indices to the lists
-            print("good_left_inds: ", good_left_inds)
             left_lane_inds.append(good_left_inds)
             right_lane_inds.append(good_right_inds)
             # If you found > minpix pixels, recenter next window on their mean position
@@ -91,7 +99,6 @@ class LaneFinder:
                 leftx_current = np.int(np.mean(nonzerox[good_left_inds]))
             if len(good_right_inds) > minpix:
                 rightx_current = np.int(np.mean(nonzerox[good_right_inds]))
-
 
         # Concatenate the arrays of indices
         left_lane_inds = np.concatenate(left_lane_inds)

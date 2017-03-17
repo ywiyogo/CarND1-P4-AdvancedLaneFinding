@@ -117,7 +117,7 @@ def sobel_color_threshold(img, orient='x', thresh_min=15, thresh_max=100):
     return combine_binary
 
 
-def draw_result(undist_img, warped_img, Minv, ploty, left_fitx, right_fitx):
+def draw_result(undist_img, warped_img, Minv, ploty, left_fitx, right_fitx, text):
     # Create an image to draw the lines on
     color_warp = np.zeros_like(warped_img).astype(np.uint8)
     # color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
@@ -127,10 +127,13 @@ def draw_result(undist_img, warped_img, Minv, ploty, left_fitx, right_fitx):
     pts_right = np.array(
         [np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
     pts = np.hstack((pts_left, pts_right))
-    #pts = np.array(pts, dtype=np.int32)
+    # pts = np.array(pts, dtype=np.int32)
     # Draw the lane onto the warped blank image
     cv2.fillPoly(color_warp, np.int_([pts]), (0, 255, 0))
-
+    # cv2.putText(img, "Lane curve: {}m".format(lane_curve.round()), (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1,
+    #             color=(255, 255, 255), thickness=2)
+    cv2.putText(undist_img, "{}".format(text), (10, 40), 
+                cv2.FONT_HERSHEY_SIMPLEX, 1, color=(255, 255, 255), thickness=2)
     # Warp the blank back to original image space using inverse perspective
     # matrix (Minv)
     unwarp = cv2.warpPerspective(

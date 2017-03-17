@@ -43,6 +43,8 @@ def main():
     undist_img = calibrator.undistort_img(rgb_img)
     thres_img = sobel_color_threshold(undist_img)
 
+    transformer.search_start_point(thres_img)
+    transformer.do_perpectivetransform()
     warped_img = transformer.warp(thres_img)
     transformer.visualize_transform(thres_img)
 
@@ -51,9 +53,22 @@ def main():
     lanefinder = LaneFinder()
     leftx, rightx = lanefinder.calc_histogram(warped_img)
 
-    left_curverad, right_curverad = curvature.calc_radcurvature(leftx, rightx)
-    print("Radius curvature: %f, %f" % (left_curverad, right_curverad))
-    draw_result(undist_img, warped_img, transformer.Minv, curvature.ploty, curvature.left_fitx, curvature.right_fitx)
+    curvature.calc_radcurvature(undist_img, leftx, rightx)
+    print("Radius curvature: %f, %f" % (curvature.left_curverad,
+                                        curvature.right_curverad))
+
+    x_m_per_pix = 3.7 / 700  # meters per pixel in x dimension
+    centerroad = (lanefinder.leftx_base + lanefinder.rightx_base) / 2
+    centercam = undist_img.shape[1] / 2
+    veh_pos = (centerroad - centercam)  * x_m_per_pix
+    print("vehicle pos: {}".format(veh_pos))
+    if veh_pos > 0:
+        pos_text = "Vehicle is {} m left from center".format(abs(veh_pos))
+    else:
+        pos_text = "Vehicle is {} m right from center".format(abs(veh_pos))
+
+    draw_result(undist_img, warped_img, transformer.Minv, curvature.ploty,
+                curvature.left_fitx, curvature.right_fitx, pos_text)
 #  Use color transforms, gradients, etc., to create a thresholded binary image.
 
 

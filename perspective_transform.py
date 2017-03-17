@@ -5,23 +5,49 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-
+DEBUG = 1
 class PerspectiveTransform:
     """Class of perspective transform"""
 
     def __init__(self):
         """Constructor"""
-        # test_images/straight_lines1.jpg
+        # Calibrate the trapezoid first with test_images/straight_lines1.jpg
+        # The trapezoid shall not to long, since it will affects the detection
+        # for the curve
         self.src = np.float32([[278, 670],
-                               [597, 450],
-                               [685, 450],
+                               [567, 470],
+                               [715, 470],
                                [1030, 670]])
 
         self.dst = np.float32([[280, 710],
-                               [280, 100],
-                               [1030, 100],
+                               [280, 20],
+                               [1030, 20],
                                [1030, 710]])
+        self.M = 0
+        self.Minv = 0
 
+    def search_start_point(self, thres_img):
+        """Finding the lower point of left line"""
+
+        # visualize the histogram of the lowest image area of thres S channel
+        histogram = np.sum(thres_img[650:700, :, 1], axis=0)
+        plt.plot(histogram)
+        # add the distribution of both channels
+        plt.show()
+
+        # Find the peak of the left and right halves of the histogram
+        # These will be the starting point for the left and right lines
+        midpoint = np.int(histogram.shape[0] / 2)
+        leftx_start = np.argmax(histogram[:midpoint], axis=0)
+        # if there is an activation of the line, replace the x start point
+        if histogram[leftx_start] > 10:
+            self.src[0, 0] = leftx_start
+            if DEBUG:
+                print("count: {}".format(histogram[leftx_start]))
+                print("start left: {}".format(self.src))
+
+    def do_perpectivetransform(self):
+        """Run perspective transform"""
         self.M = cv2.getPerspectiveTransform(self.src, self.dst)
         self.Minv = np.linalg.inv(self.M)
 
