@@ -38,7 +38,7 @@ class Curvature:
 
         self.left_fitx = left_fit[0] * self.ploty**2 + \
             left_fit[1] * self.ploty + left_fit[2]
-        
+
         self.right_fitx = right_fit[0] * self.ploty**2 + \
             right_fit[1] * self.ploty + right_fit[2]
 
@@ -51,12 +51,15 @@ class Curvature:
         plt.plot(self.left_fitx, self.ploty, color='green', linewidth=3)
         plt.plot(self.right_fitx, self.ploty, color='green', linewidth=3)
         plt.gca().invert_yaxis()  # to visualize as we do the images
+        plt.title("Curvature")
         plt.show()
 
         # Define y-value where we want radius of curvature
         # I'll choose the maximum y-value, corresponding to the bottom of the
         # image
         y_eval = np.max(self.ploty)
+
+        # R_curve = (1 + (2Ay+B)^2 )^1.5 / |2A|
         self.left_curverad = (
             (1 + (2 * left_fit[0] * y_eval + left_fit[1])**2)**1.5) / np.absolute(2 * left_fit[0])
         self.right_curverad = (

@@ -1,91 +1,71 @@
 """
 Author: YWiyogo
+Desc: P4, Adcanced Lane Lines detection
 """
-import cv2
-import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-
-
+from moviepy.editor import VideoFileClip
 # importing internal classes and methods
-from helper_methods import sobel_color_threshold, draw_result
+from helper_methods import sobel_color_threshold
 from calibration import Calibration
 from perspective_transform import PerspectiveTransform
-from thresholding import Thresholding
 from lanefinder import LaneFinder
-from curvature import Curvature
-from line import Line
-
-# cv2.imshow("Test image", img)
-# cv2.waitKey()
 
 # Compute the camera calibration matrix and distortion coefficients given
 # a set of chessboard images. We need to perform this once -> using OOP
-# The dimension of the chessboard is 6x9
-# Even though the chessboard can be 2D, the object points has to be
-# 3 dimensional due to the camera matrix for the funt cv2.undistort
-# cv2.error: (-210) objectPoints should contain vector of vectors of points of
-# type Point3f in function collectCalibrationData
+
+DEBUG = 0
+calibrator = None
+transformer = None
+lanefinder = None
 
 
-# calibrate_camera()
+def process_image(rgb_img):
+    """
+    NOTE: The output you return should be a color image (3 channel) for
+    processing video below
+    """
+    global calibrator
+    global transformer
+    global lanefinder
+    # Compute the camera calibration matrix and distortion coefficients given
+    if calibrator is None:
+        calibrator = Calibration()
+    undist_img = calibrator.undistort_img(rgb_img)
+
+    #  Use color transforms, etc.,to create a thresholded binary image.
+    thres_img = sobel_color_threshold(undist_img)
+    if transformer is None:
+        transformer = PerspectiveTransform()
+
+    #  Apply a perspective transform to rectify binary image ("birds-eye view").
+    transformer.do_perpectivetransform()
+    warped_img = transformer.warp(thres_img)
+    if DEBUG:
+        transformer.visualize_transform(thres_img)
+
+    if lanefinder is None:
+        lanefinder = LaneFinder()
+    # Perform the lane detection
+    leftx, rightx = lanefinder.detect_lanes(warped_img)
+
+    lanefinder.calc_radcurvature()
+    lanefinder.calc_vehicle_position(undist_img)
+    # Output visual display of the lane boundaries and numerical estimation of
+    return lanefinder.draw_result(undist_img, warped_img, transformer.Minv)
+
 
 def main():
     """Main function"""
-    # Compute the camera calibration matrix and distortion coefficients given
-    #  Apply a distortion correction to raw images.
-    calibrator = Calibration()
-    transformer = PerspectiveTransform()
-    curvature = Curvature()
-    # print("Cam matrix:\n", calibrator.mtx)
     # open a video file / test image with straight line
-    rgb_img = mpimg.imread('test_images/straight_lines1.jpg')
-    undist_img = calibrator.undistort_img(rgb_img)
-    thres_img = sobel_color_threshold(undist_img)
+    # rgb_img = mpimg.imread("./test_images/test4.jpg")
+    # process_image(rgb_img)
+    write_output = "project_video_result.mp4"
+    vidfilename = "project_video.mp4"
+    clip = VideoFileClip(vidfilename)
+    # NOTE: this below function expects color images!!
+    proc_clip = clip.fl_image(process_image)
+    proc_clip.write_videofile(write_output, audio=False)
 
-    transformer.search_start_point(thres_img)
-    transformer.do_perpectivetransform()
-    warped_img = transformer.warp(thres_img)
-    transformer.visualize_transform(thres_img)
-
-    lline = Line()
-    rline = Line()
-    lanefinder = LaneFinder()
-    leftx, rightx = lanefinder.calc_histogram(warped_img)
-
-    curvature.calc_radcurvature(undist_img, leftx, rightx)
-    print("Radius curvature: %f, %f" % (curvature.left_curverad,
-                                        curvature.right_curverad))
-
-    x_m_per_pix = 3.7 / 700  # meters per pixel in x dimension
-    centerroad = (lanefinder.leftx_base + lanefinder.rightx_base) / 2
-    centercam = undist_img.shape[1] / 2
-    veh_pos = (centerroad - centercam)  * x_m_per_pix
-    print("vehicle pos: {}".format(veh_pos))
-    if veh_pos > 0:
-        pos_text = "Vehicle is {} m left from center".format(abs(veh_pos))
-    else:
-        pos_text = "Vehicle is {} m right from center".format(abs(veh_pos))
-
-    draw_result(undist_img, warped_img, transformer.Minv, curvature.ploty,
-                curvature.left_fitx, curvature.right_fitx, pos_text)
-#  Use color transforms, gradients, etc., to create a thresholded binary image.
-
-
-#  Apply a perspective transform to rectify binary image ("birds-eye view").
-
-
-#  Detect lane pixels and fit to find the lane boundary.
-
-
-#  Determine the curvature of the lane and vehicle position with respect to center.
-
-
-#  Warp the detected lane boundaries back onto the original image.
-
-
-#  Output visual display of the lane boundaries and numerical estimation of
-# lane curvature and vehicle position.
 
 if __name__ == '__main__':
     main()

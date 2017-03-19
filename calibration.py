@@ -14,7 +14,13 @@ DEBUG = 0
 
 
 class Calibration:
-    """Calibration class"""
+    """Calibration class
+    The dimension of the chessboard is 6x9
+    Even though the chessboard can be 2D, the object points has to be
+    3 dimensional due to the camera matrix for the funt cv2.undistort
+    cv2.error: (-210) objectPoints should contain vector of vectors of points of
+    type Point3f in function collectCalibrationData
+    """
 
     def __init__(self):
         """Contructor"""
@@ -49,13 +55,13 @@ class Calibration:
                     objpoints.append(opoints)
                     imgpoints.append(corners)
                     img = cv2.drawChessboardCorners(img, (9, 6), corners, ret)
-                    # gray.shape[::-1] invert the shape: (720, 1280) -> (1280, 720)
+                    # gray.shape[::-1] invert the shape:(720, 1280)->(1280, 720)
                     ret, self.mtx, self.dist, self.rvecs, self.tvecs = \
-                        cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],
-                                            None, None)
+                        cv2.calibrateCamera(objpoints, imgpoints,
+                                            gray.shape[::-1], None, None)
                 else:
                     print("Warning: findChessboardCorners failed")
-            calib_data={}
+            calib_data = {}
             calib_data["mtx"] = self.mtx
             calib_data["dist"] = self.dist
             calib_data["rvecs"] = self.rvecs

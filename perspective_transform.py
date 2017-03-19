@@ -5,7 +5,9 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-DEBUG = 1
+DEBUG = 0
+
+
 class PerspectiveTransform:
     """Class of perspective transform"""
 
@@ -15,8 +17,8 @@ class PerspectiveTransform:
         # The trapezoid shall not to long, since it will affects the detection
         # for the curve
         self.src = np.float32([[278, 670],
-                               [567, 470],
-                               [715, 470],
+                               [588, 455],  # [567, 470],
+                               [693, 455],  # [715, 470],
                                [1030, 670]])
 
         self.dst = np.float32([[280, 710],
@@ -27,8 +29,7 @@ class PerspectiveTransform:
         self.Minv = 0
 
     def search_start_point(self, thres_img):
-        """Finding the lower point of left line"""
-
+        """Finding the lower point of left line. Currently not used"""
         # visualize the histogram of the lowest image area of thres S channel
         histogram = np.sum(thres_img[650:700, :, 1], axis=0)
         plt.plot(histogram)
@@ -63,15 +64,16 @@ class PerspectiveTransform:
 
     def visualize_transform(self, src_img):
         """Visualize the transformation line"""
-        dst_img = cv2.warpPerspective(src_img, self.M, (src_img.shape[1],
-                                                        src_img.shape[0]),
-                                      flags=cv2.INTER_LINEAR)
-        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 8))
-        f.tight_layout()
-        ax1.set_title("source")
-        ax2.set_title("destination")
-        ax1.plot(self.src[:, 0], self.src[:, 1], "r")
-        ax2.plot(self.dst[:, 0], self.dst[:, 1], "r")
-        ax1.imshow(src_img)
-        ax2.imshow(dst_img)
-        plt.show()
+        if DEBUG:
+            dst_img = cv2.warpPerspective(src_img, self.M, (src_img.shape[1],
+                                                            src_img.shape[0]),
+                                          flags=cv2.INTER_LINEAR)
+            f, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 8))
+            f.tight_layout()
+            ax1.set_title("source")
+            ax2.set_title("destination")
+            ax1.plot(self.src[:, 0], self.src[:, 1], "r")
+            ax2.plot(self.dst[:, 0], self.dst[:, 1], "r")
+            ax1.imshow(src_img)
+            ax2.imshow(dst_img)
+            plt.show()
